@@ -128,7 +128,8 @@ export default {
       C: Math.cos,
       x: null,
       currentPiece: null,
-      boardBG: new Image(),
+      swapped: false,
+			boardBG: new Image(),
       tempBoard: [],
       initDropFreq: 40,
       dropFreq: 40,
@@ -139,8 +140,10 @@ export default {
       upKey: false,
       rightKey: false,
       downKey: false,
+			tabKey: false,
       pieceMoveTimer: 0,
-      piceMoveInterval: .15,
+      pieceRotateTimer: 0,
+			piceMoveInterval: .15,
       pieceManualDropTimer: 0,
       piecManualDropInterval: .02,
       B: [],
@@ -259,6 +262,7 @@ export default {
           return v
         })
       } else {
+				this.swapped = false
         this.state.boardData = this.state.boardData.map((v, i)=>{
           let tx = i%10
           let ty = (i/10|0) - 6
@@ -295,7 +299,7 @@ export default {
       this.pollServer()
       this.$nextTick(()=>this.Draw())
     },
-    drawNextPiece(tx1, ty1){
+    drawNextPiece(tx1, ty1, nextPieceIdx, msx){
       let t = this.t
       let S = this.S
       let C = this.C
@@ -307,7 +311,7 @@ export default {
       ty1 += 70
       let Rl, Pt, Yw, oX, oY, oZ
       Rl=t/4, Pt=-t/1.5, Yw=t*2
-      let s = (c.height - c.height/20)
+      let s = (c.height - c.height/20) * msx
       oX=0, oY=0, oZ=Math.max(4, 16 - s/60)
 
       let M, A, p, H, d
@@ -316,7 +320,7 @@ export default {
         if(o)X+=oX,Y+=oY,Z+=oZ
       }
       this.B.map((v, j)=>{
-        if(j==this.nextPieceIdx){
+        if(j==nextPieceIdx){
           v.map(v=>{
             let tx=v[0]
             let ty=v[1]
@@ -689,9 +693,19 @@ export default {
           x.strokeRect(tx + s/2 + s/32,  s/40, s/2 - s/16, s/2 - s/16)
           x.font= s**.9/12 + 'px "Varela Round"'
           x.fillStyle='#86fc'
-          x.fillText('next piece', tx + s/2 + s/32 + (s/2 - s/16)/2.3 - s/16, s/11 - s/20 + s/40)
-          this.drawNextPiece(tx + s/2 + s/32 + 100, s/16 + s/10 - s/20)
-          
+          x.fillText('next piece', tx + s/2 + s/12 + (s/2 - s/16)/2.3 - s/9, s/11 - s/20 + s/40)
+          this.drawNextPiece(tx + s/2 + s/32 + 100, s/16 + s/10 - s/20, this.nextPieceIdx, 1)
+
+          /*
+					x.strokeStyle='#aaf6'
+          x.lineWidth = 1
+          x.strokeRect(tx + s/2 + s/32 + s/80,  s/40 + s/64, s/8, s/8)
+          x.font= s**.9/14 + 'px "Varela Round"'
+          x.fillStyle='#8fc6'
+          x.fillText('swap', tx + s/2 + s/32 + s/32,  s/40 + s/64 + s/32*1.2, s/8, s/8)          
+          x.fillText('[tab]', tx + s/2 + s/32 + s/28,  s/40 + s/64 + s/32*2.85, s/8, s/8)
+          if(this.swapPieceIdx != null) this.drawNextPiece(tx + s/2 + s/32 + s/80,  s/40 + s/64, s/8, s/8, this.swapPieceIdx, 1)
+          */
 
           x.fillStyle='#102a'
           x.fillRect(tx + s/2 + s/32, s/2 - s/16 + s/10 - s/20, s/2 - s/16, s/2 + s/100 + s/40)
@@ -710,8 +724,91 @@ export default {
             this.advancePiece()
           }
 
+          x.fillStyle='#2466'
+          if(this.currentPiece != null && ((this.state.singlePlayerMode && this.state.alive) || (this.state.challengerJoined && this.state.gameActuallyPlaying &&
+             this.state.alive))){
+						let tempPiece = JSON.parse(JSON.stringify(this.currentPiece))
+						do{
+							tempPiece = tempPiece.map(v=>{
+							  v[1]++
+								return v
+							})
+						}while(this.canDo(tempPiece))
+            Array(260).fill().map((v, i)=>{
+              let px = (i%10) * s / 20
+              let py = ((i/10|0)-6) * s / 20
+						  tempPiece.map(q=>{
+							  if((i%10) == q[0] && ((i/10|0)-6)==q[1]-1){
+                  x.fillRect(tx + px + msp, py + s/40 + msp, s/20 - msp*2, s/20 - msp*2)
+                }
+							})
+            })
+          }
           if((this.state.singlePlayerMode && this.state.gameActuallyPlaying && this.state.alive) || this.state.challengerJoined && this.state.gameActuallyPlaying && this.state.alive) {
             if(this.currentPiece != null){
+			  		  if(0&&this.tabKey){
+								if(!this.swapped){
+									let tmpIdx = -1
+								  if(this.swapPieceIdx) tmpIdx = this.swapPieceIdx
+								  this.swapPieceIdx = this.currentPiece[0][2]
+									if(tmpIdx == -1){
+									  this.state.boardData = JSON.parse(JSON.stringify(this.tempBoard))
+										this.spawnPiece(4, -2)
+									} else {
+                    this.tempBoard = JSON.parse(JSON.stringify(this.state.boardData))
+                    let n = tmpIdx
+                    let tempPiece = JSON.parse(JSON.stringify(this.B))[n].map(v=>{
+                      return [
+                        Math.round(X + v[0]),
+                        Math.round(Y + v[1]),
+                        n
+                      ]
+                    })
+                    if(this.canDo(tempPiece)){
+                      this.currentPiece = tempPiece
+                      this.state.boardData = this.state.boardData.map((v, i)=>{
+                        let tx = i%10
+                        let ty = (i/10|0) - 6
+                        this.currentPiece.map(q=>{
+                          if(q[0] == tx && q[1] == ty){
+                            v[0] = q[2]+1
+                            v[1] = 0
+                          }
+                        })
+                        return v
+                      })
+                    } else {
+                      this.state.alive = false
+                    }
+									}
+								  this.swapped = true
+								}
+								this.tabKey = false
+							}
+							if(this.spaceKey){
+                do{
+                  this.currentPiece = this.currentPiece.map(v=>{
+                    v[1]++
+                    return v
+                  })
+                }while(this.canDo(this.currentPiece))
+								this.state.boardData = JSON.parse(JSON.stringify(this.tempBoard))
+                this.state.boardData = this.state.boardData.map((v, i)=>{
+                  let tx = i%10
+                  let ty = (i/10|0) - 6
+                  this.currentPiece.map(q=>{
+                    if(q[0] == tx && q[1]-1 == ty){
+                      v[0] = q[2]
+                      v[1] = 0
+                    }
+                  })
+                  return v
+                })
+                this.currentPiece = null
+								this.spaceKey = false
+                this.tempBoard = JSON.parse(JSON.stringify(this.state.boardData))
+                this.checkRowCompletion()
+              } 
               if(this.leftKey){
                 if(this.pieceMoveTimer < t){
                   let tempPiece = JSON.parse(JSON.stringify(this.currentPiece)).map(v=>{
@@ -742,7 +839,7 @@ export default {
               }
               if(this.upKey){
                 if(this.currentPiece[0][2]!=6){
-                  if(this.pieceMoveTimer < t){
+                  if(this.pieceRotateTimer < t){
                     //let tx = (this.currentPiece[0][0] + this.currentPiece[1][0] + this.currentPiece[2][0] + this.currentPiece[3][0])/4
                     //let ty = (this.currentPiece[0][1] + this.currentPiece[1][1] + this.currentPiece[2][1] + this.currentPiece[3][1])/4
                     let tx = this.currentPiece[1][0]
@@ -758,7 +855,7 @@ export default {
                     })
                     if(this.canDo(tempPiece)){
                       this.currentPiece = tempPiece
-                      this.pieceMoveTimer = this.t + this.piceMoveInterval * 2
+                      this.pieceRotateTimer = this.t + this.piceMoveInterval * 2
                     }
                   }
                 }
@@ -837,7 +934,9 @@ export default {
     },
     setupListeners(){
       document.getElementsByTagName('body')[0].addEventListener('keydown', e=>{
-        switch(e.keyCode){
+        console.log(e)
+				switch(e.keyCode){
+          case 9: this.tabKey = true; break
           case 37: this.leftKey = true; break
           case 38: this.upKey = true; break
           case 39: this.rightKey = true; break
@@ -847,7 +946,9 @@ export default {
       })
       document.getElementsByTagName('body')[0].addEventListener('keyup', e=>{
         this.pieceMoveTimer = 0
-        switch(e.keyCode){
+        this.pieceRotateTimer = 0
+				switch(e.keyCode){
+          case 9: this.tabKey = false; break
           case 37: this.leftKey = false; break
           case 38: this.upKey = false; break
           case 39: this.rightKey = false; break
