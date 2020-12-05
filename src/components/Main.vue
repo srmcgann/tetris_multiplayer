@@ -6,7 +6,7 @@
         <option value="rainbows">rainbows</option>
       </select>
       <div v-if="!(state.author && state.stage==1 && !state.challengerJoined)" style="display: inline-block;">
-        <input type="search" v-model="state.playerName" style="width: 150px; font-size: 18px; margin-right: 10px;background: #1236" @input="pollServer(1)">
+        <input v-if="!state.singlePlayerMode" type="search" v-model="state.playerName" style="width: 150px; font-size: 18px; margin-right: 10px;background: #1236" @input="pollServer(1)">
         <div style="display: inline-block;" v-if="state.author">
           <span ref="gamelink" class= "gamelink" v-html="processedGameLink" style="font-size: .75em;background: #001; display: inline-block"></span>
           <div style="display: inline-block;">
@@ -47,7 +47,9 @@
             style="position: absolute; width: 250px;transform: translatex(-50%);margin-top: 20px;"
             @click="state.stage ? joinGame() : createGame()"
             v-html="state.stage ? 'join game' : 'create game'"
-          ></button>
+          ></button><br>
+					<br>or<br><br>
+					<button @click="launchSinglePlayer()">play single<br>player mode</button>
         </div>
       </div>
       <div v-if="!state.gameActuallyPlaying">
@@ -167,6 +169,10 @@ export default {
     }
   },
   methods:{
+		launchSinglePlayer(){
+			this.state.singlePlayerMode = true
+			this.startGame()
+		},
     spawnPiece(X, Y){
       this.tempBoard = JSON.parse(JSON.stringify(this.state.boardData))
       let n = this.nextPieceIdx
@@ -355,7 +361,20 @@ export default {
       let ms = .4
       let s = (c.height - c.height/20) * ms
       let oy = Y + s/4
-      if(this.state.challengerJoined){
+
+
+      if(this.state.singlePlayerMode){
+				x.font  = s/10 + 'px "Varela Round"'
+				x.fillStyle = '#0f8'
+				x.fillText('high score', X + s/4, Y + s/8*2)
+				x.fillStyle = '#fff'
+				x.fillText(this.state.highScore, X + s/2 - s/32, Y + s/8*3)
+        x.fillStyle = '#0f8'
+        x.fillText('rows completed', X + s/6, Y + s/8*5)
+        x.fillStyle = '#fff'
+        x.fillText(this.rowsCompleted, X + s/2 - s/32, Y + s/8*6)
+				return
+			} else if(this.state.challengerJoined){
         let ms = .2
         let s = (c.height - c.height/20) * ms
         let oy = Y + s/4
@@ -673,6 +692,7 @@ export default {
           x.fillText('next piece', tx + s/2 + s/32 + (s/2 - s/16)/2.3 - s/16, s/11 - s/20 + s/40)
           this.drawNextPiece(tx + s/2 + s/32 + 100, s/16 + s/10 - s/20)
           
+
           x.fillStyle='#102a'
           x.fillRect(tx + s/2 + s/32, s/2 - s/16 + s/10 - s/20, s/2 - s/16, s/2 + s/100 + s/40)
           x.strokeStyle='#aaf6'
@@ -683,15 +703,14 @@ export default {
             x.font= s**.9/16 + 'px "Varela Round"'
             x.fillText('challengers', tx + s/1.8 + s/32 + s/2 / 2.3 - s/7, s/2 + s/14 - s/20)
           }
-
           this.drawOpponents(tx + s/2 + s/30, s/2 - s/16 + s/10 - s/20 + s/40)
-
-          if(this.state.challengerJoined && this.state.gameActuallyPlaying &&
-             this.state.alive && !((t*60|0)%(this.dropFreq|0))){
+					
+          if(((this.state.singlePlayerMode && this.state.alive) || (this.state.challengerJoined && this.state.gameActuallyPlaying &&
+             this.state.alive)) && !((t*60|0)%(this.dropFreq|0))){
             this.advancePiece()
           }
 
-          if(this.state.challengerJoined && this.state.gameActuallyPlaying && this.state.alive) {
+          if((this.state.singlePlayerMode && this.state.gameActuallyPlaying && this.state.alive) || this.state.challengerJoined && this.state.gameActuallyPlaying && this.state.alive) {
             if(this.currentPiece != null){
               if(this.leftKey){
                 if(this.pieceMoveTimer < t){
@@ -780,11 +799,20 @@ export default {
       this.$nextTick(()=>this.Draw())
     },
     startGame(){
-      history.pushState(0, 0 , window.location.origin + '/game/' + this.state.decToAlpha(this.state.gameID) + '/a')
-      this.state.stage = 1
+      if(this.state.singlePlayerMode) {
+				history.pushState(0, 0 , window.location.origin + '/game')
+      } else {
+        history.pushState(0, 0 , window.location.origin + '/game/' + this.state.decToAlpha(this.state.gameID) + '/a')
+			}
+			this.state.stage = 1
       this.state.countdownTimer = 0
       this.t = 0
-      this.pollServer()
+      if(!this.state.singlePlayerMode) {
+				this.pollServer()
+			} else {
+			  this.state.gameActuallyPlaying = false
+        this.state.countdownTimer = this.t + 6
+			}
       this.$nextTick(()=>this.Draw())
       this.syncBoard()
     },
@@ -851,7 +879,8 @@ export default {
       if(!val && this.playerJoinedCount > 1 &&
 				!(this.state.author && this.state.stage==1 && !this.state.challengerJoined)
 				) this.state.gameActuallyPlaying = true
-    }
+      if(this.state.singlePlayerMode && !val ) this.state.gameActuallyPlaying = true
+		}
   },
   mounted(){
     this.c = this.$refs.mainCanvas
@@ -863,12 +892,10 @@ export default {
     if(this.state.author) this.gameActuallyPlaying = false
     this.$nextTick(()=>{
       if(this.state.stage != 1) this.$refs.userNameField.focus()
-      if(this.state.stage==1){
-        //this.startGame()
-      }
-    })
+      if(this.state.singlePlayerMode) this.launchSinglePlayer()
+		})
     this.setupListeners()
-  }
+	}
 }
 </script>
 

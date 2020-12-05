@@ -1,6 +1,6 @@
 <template>
   <div class="header">
-    <a href="javascript:window.location.href = window.location.origin"><div class="headerText">TETRIS</div></a>
+    <a href="javascript:window.location.href = window.location.origin"><div class="headerText">TETRIS<br>THE NEXT GENERATION</div></a>
     <canvas ref="headerCanvas"></canvas>
   </div>
 </template>
@@ -118,10 +118,11 @@ canvas{
   text-align: center;
 }
 .headerText{
-  font-size: 64px;
+  font-size: 28px;
   color: #fff8;
   position: absolute;
-  left: 50%;
+  min-width: 450px;
+	left: 50%;
   top: 15px;
   transform: translatex(-50%) scalex(2.0);
   font-style: oblique;
