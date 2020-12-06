@@ -934,7 +934,6 @@ export default {
     },
     setupListeners(){
       document.getElementsByTagName('body')[0].addEventListener('keydown', e=>{
-        console.log(e)
 				switch(e.keyCode){
           case 9: this.tabKey = true; break
           case 37: this.leftKey = true; break
