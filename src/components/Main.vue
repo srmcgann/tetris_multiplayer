@@ -798,7 +798,7 @@ export default {
                   let ty = (i/10|0) - 6
                   this.currentPiece.map(q=>{
                     if(q[0] == tx && q[1]-1 == ty){
-                      v[0] = q[2]
+                      v[0] = q[2]+1
                       v[1] = 0
                     }
                   })
