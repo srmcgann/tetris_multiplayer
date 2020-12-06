@@ -785,7 +785,7 @@ export default {
 								}
 								this.tabKey = false
 							}
-							if(this.spaceKey){
+							if(this.spaceKey && this.currentPiece != null){
                 do{
                   this.currentPiece = this.currentPiece.map(v=>{
                     v[1]++
@@ -809,7 +809,7 @@ export default {
                 this.tempBoard = JSON.parse(JSON.stringify(this.state.boardData))
                 this.checkRowCompletion()
               } 
-              if(this.leftKey){
+              if(this.leftKey && this.currentPiece != null){
                 if(this.pieceMoveTimer < t){
                   let tempPiece = JSON.parse(JSON.stringify(this.currentPiece)).map(v=>{
                     v[0]--
@@ -821,7 +821,7 @@ export default {
                   }
                 }
               }
-              if(this.rightKey){
+              if(this.rightKey && this.currentPiece != null){
                 if(this.pieceMoveTimer < t){
                   let tempPiece = JSON.parse(JSON.stringify(this.currentPiece)).map(v=>{
                     v[0]++
@@ -833,11 +833,11 @@ export default {
                   }
                 }
               }
-              if(this.downKey && this.pieceManualDropTimer < t){
+              if(this.downKey && this.pieceManualDropTimer < t && this.currentPiece != null){
                 this.advancePiece()
                 this.pieceManualDropTimer = this.t + this.piecManualDropInterval
               }
-              if(this.upKey){
+              if(this.upKey && this.currentPiece != null){
                 if(this.currentPiece[0][2]!=6){
                   if(this.pieceRotateTimer < t){
                     //let tx = (this.currentPiece[0][0] + this.currentPiece[1][0] + this.currentPiece[2][0] + this.currentPiece[3][0])/4
