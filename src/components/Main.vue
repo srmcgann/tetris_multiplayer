@@ -840,12 +840,12 @@ export default {
               if(this.upKey && this.currentPiece != null){
                 if(this.currentPiece[0][2]!=6){
                   if(this.pieceRotateTimer < t){
-                    //let tx = (this.currentPiece[0][0] + this.currentPiece[1][0] + this.currentPiece[2][0] + this.currentPiece[3][0])/4
-                    //let ty = (this.currentPiece[0][1] + this.currentPiece[1][1] + this.currentPiece[2][1] + this.currentPiece[3][1])/4
                     let tx = this.currentPiece[1][0]
                     let ty = this.currentPiece[1][1]
+										let cx
                     let tempPiece = JSON.parse(JSON.stringify(this.currentPiece)).map(v=>{
-                      let X = v[0]
+                      cx = v[0]
+											let X = v[0]
                       let Y = v[1]
                       let p = Math.atan2(v[0]-tx, v[1]-ty) + Math.PI / 2
                       let d = Math.hypot(v[0]-tx, v[1]-ty)
@@ -856,7 +856,33 @@ export default {
                     if(this.canDo(tempPiece)){
                       this.currentPiece = tempPiece
                       this.pieceRotateTimer = this.t + this.piceMoveInterval * 2
-                    }
+                    } else if(cx >= 5) {
+											let tries = 0, res = false
+											do{
+												tries++
+												tempPiece = tempPiece.map(v=>{
+											   v[0]--
+											  	return v
+											  })
+											}while(!(res = this.canDo(tempPiece)) && tries < 3);
+											if(res){
+												this.currentPiece = tempPiece
+                        this.pieceRotateTimer = this.t + this.piceMoveInterval * 2
+											}
+										} else if(cx <= 5) {
+                      let tries = 0, res = false
+                      do{
+                        tries++
+                        tempPiece = tempPiece.map(v=>{
+                         v[0]++
+                          return v
+                        })
+                      }while(!(res = this.canDo(tempPiece)) && tries < 3);
+                      if(res){
+												this.currentPiece = tempPiece
+                        this.pieceRotateTimer = this.t + this.piceMoveInterval * 2
+											}
+										}
                   }
                 }
               }
